@@ -74,7 +74,9 @@ export default function Home() {
 
   function startQuiz() {
     finishing.current = false;
-    const bank = createQuestionBank(settings.factors, settings.questionCount);
+    const active = settingsRef.current;
+    const bank = createQuestionBank(active.factors, active.questionCount);
+    setSettings(active); // keep UI in sync with what we actually started
     setQuestions(bank);
     setIndex(0);
     setAnswers([]);
@@ -122,10 +124,12 @@ export default function Home() {
     if (phase !== "playing" || feedback !== "idle" || finishing.current) return;
     const question = questions[index];
     if (!question) return;
+    const currentIndex = index;
+    const total = questions.length;
 
     const correct = value === question.answer;
     const record: AnswerRecord = { question, given: value, correct };
-    const nextAnswers = [...answers, record];
+    const nextAnswers = [...answersRef.current, record];
     answersRef.current = nextAnswers;
     setAnswers(nextAnswers);
     if (correct) setCorrectCount((c) => c + 1);
@@ -133,10 +137,10 @@ export default function Home() {
 
     feedbackTimer.current = setTimeout(() => {
       setFeedback("idle");
-      if (index + 1 >= questions.length) {
+      if (currentIndex + 1 >= total) {
         finishQuiz("questions", nextAnswers);
       } else {
-        setIndex((i) => i + 1);
+        setIndex(currentIndex + 1);
       }
     }, 550);
   }

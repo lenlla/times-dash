@@ -4,7 +4,9 @@ import { ALL_FACTORS, type QuizSettings } from "@/lib/quiz";
 
 type SetupScreenProps = {
   settings: QuizSettings;
-  onChange: (settings: QuizSettings) => void;
+  onChange: (
+    settings: QuizSettings | ((prev: QuizSettings) => QuizSettings),
+  ) => void;
   onStart: () => void;
   onShowScores: () => void;
 };
@@ -18,21 +20,24 @@ export function SetupScreen({
   const allSelected = settings.factors.length === ALL_FACTORS.length;
 
   function toggleFactor(n: number) {
-    const has = settings.factors.includes(n);
-    if (has && settings.factors.length === 1) return;
-    onChange({
-      ...settings,
-      factors: has
-        ? settings.factors.filter((f) => f !== n)
-        : [...settings.factors, n].sort((a, b) => a - b),
+    onChange((prev) => {
+      const has = prev.factors.includes(n);
+      if (has && prev.factors.length === 1) return prev;
+      return {
+        ...prev,
+        factors: has
+          ? prev.factors.filter((f) => f !== n)
+          : [...prev.factors, n].sort((a, b) => a - b),
+      };
     });
   }
 
   function toggleAll() {
-    onChange({
-      ...settings,
-      factors: allSelected ? [2] : [...ALL_FACTORS],
-    });
+    // Clear leaves nothing selected (Start stays disabled until they pick).
+    onChange((prev) => ({
+      ...prev,
+      factors: prev.factors.length === ALL_FACTORS.length ? [] : [...ALL_FACTORS],
+    }));
   }
 
   const canStart =
@@ -58,9 +63,10 @@ export function SetupScreen({
             maxLength={20}
             placeholder="Champion"
             value={settings.playerName}
-            onChange={(e) =>
-              onChange({ ...settings, playerName: e.target.value })
-            }
+            onChange={(e) => {
+              const playerName = e.target.value;
+              onChange((prev) => ({ ...prev, playerName }));
+            }}
           />
         </label>
 
@@ -101,16 +107,16 @@ export function SetupScreen({
               onChange={(e) => {
                 const n = Number(e.target.value);
                 if (!Number.isFinite(n)) return;
-                onChange({ ...settings, timeLimitSeconds: n });
+                onChange((prev) => ({ ...prev, timeLimitSeconds: n }));
               }}
               onBlur={() =>
-                onChange({
-                  ...settings,
+                onChange((prev) => ({
+                  ...prev,
                   timeLimitSeconds: Math.min(
                     300,
-                    Math.max(10, settings.timeLimitSeconds || 10),
+                    Math.max(10, prev.timeLimitSeconds || 10),
                   ),
-                })
+                }))
               }
             />
           </label>
@@ -124,16 +130,16 @@ export function SetupScreen({
               onChange={(e) => {
                 const n = Number(e.target.value);
                 if (!Number.isFinite(n)) return;
-                onChange({ ...settings, questionCount: n });
+                onChange((prev) => ({ ...prev, questionCount: n }));
               }}
               onBlur={() =>
-                onChange({
-                  ...settings,
+                onChange((prev) => ({
+                  ...prev,
                   questionCount: Math.min(
                     100,
-                    Math.max(1, settings.questionCount || 1),
+                    Math.max(1, prev.questionCount || 1),
                   ),
-                })
+                }))
               }
             />
           </label>
