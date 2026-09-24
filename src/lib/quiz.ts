@@ -21,21 +21,20 @@ export type AnswerRecord = {
 export const ALL_FACTORS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 export const DEFAULT_SETTINGS: QuizSettings = {
-  factors: [...ALL_FACTORS],
+  factors: [],
   timeLimitSeconds: 60,
   questionCount: 20,
   playerName: "",
 };
 
 function normalizeFactors(factors: number[]): number[] {
-  const cleaned = [
+  return [
     ...new Set(
       factors
         .map((n) => Number(n))
         .filter((n) => Number.isInteger(n) && n >= 1 && n <= 12),
     ),
   ].sort((a, b) => a - b);
-  return cleaned.length > 0 ? cleaned : [...ALL_FACTORS];
 }
 
 /** One selected factor appears on either side; the other side is random 1–12. */
@@ -45,13 +44,15 @@ export function createQuestion(
   rng: () => number = Math.random,
 ): Question {
   const pool = normalizeFactors(factors);
+  if (pool.length === 0) {
+    throw new Error("createQuestion requires at least one factor");
+  }
   const selected = pool[Math.floor(rng() * pool.length)]!;
   const other = Math.floor(rng() * 12) + 1;
   const swap = rng() < 0.5;
   const a = swap ? other : selected;
   const b = swap ? selected : other;
   if (a !== selected && b !== selected) {
-    // Should be unreachable; keep kids from seeing an off-table problem.
     return { id, a: selected, b: other, answer: selected * other };
   }
   return { id, a, b, answer: a * b };
@@ -63,6 +64,9 @@ export function createQuestionBank(
   rng: () => number = Math.random,
 ): Question[] {
   const pool = normalizeFactors(factors);
+  if (pool.length === 0) {
+    throw new Error("createQuestionBank requires at least one factor");
+  }
   return Array.from({ length: Math.max(1, count) }, (_, i) =>
     createQuestion(pool, i + 1, rng),
   );
